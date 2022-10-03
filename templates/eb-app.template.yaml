@@ -1,0 +1,24 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: |
+  Creates the parent Elastic Beanstalk app that is shared across environments. This should only need to be run once.
+  The MirzaWebAppApplicationName output is used to create create environments in mirza-web-env.template.yml
+
+Parameters: 
+  EBAppName:
+    Description: Name of the Elastic Beanstalk app to create
+    Type: String
+    Default: MirzaWebApp
+
+Resources: 
+  MirzaWebApp:
+    Type: AWS::ElasticBeanstalk::Application
+    Properties:
+      ApplicationName: !Ref EBAppName
+      Description: EB Node.js app for main HeyMirza web app
+
+Outputs:
+  EBAppName:
+    Description: Elastic Beanstalk app name for Mirza Web App
+    Value: !Ref MirzaWebApp
+    Export:
+      Name: !Sub ${AWS::StackName}::MirzaWebAppApplicationName

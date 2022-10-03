@@ -1,0 +1,33 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: Network stack, mainly security groups
+Resources: 
+  MirzaWebEC2SecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: !Sub ${AWS::StackName} mirza-web-app ec2 instances. Used for referencing in DB security group
+  
+  MirzaWebDBSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: !Sub ${AWS::StackName} mirza-web-app postgres DB
+
+  MirzaWebDBSecurityGroupIngressFromEC2:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !GetAtt MirzaWebDBSecurityGroup.GroupId
+      IpProtocol: tcp
+      ToPort: 5432
+      FromPort: 5432
+      SourceSecurityGroupId: !GetAtt MirzaWebEC2SecurityGroup.GroupId
+
+Outputs:
+  MirzaWebEC2SecurityGroup:
+    Description: GroupId for EC2 security group
+    Value: !Ref MirzaWebEC2SecurityGroup
+    Export:
+      Name: !Sub ${AWS::StackName}::MirzaWebEC2SecurityGroupId
+  MirzaWebDBSecurityGroup:
+    Description: GroupId for Mirza Web DB security group
+    Value: !GetAtt MirzaWebDBSecurityGroup.GroupId
+    Export:
+      Name: !Sub ${AWS::StackName}::MirzaWebDBSecurityGroupId

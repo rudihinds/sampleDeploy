@@ -1,0 +1,5 @@
+template_path: db.template.yaml
+parameters:
+  DBPassword: {{ var.db_password | default("") }}
+  DBSecurityGroupId: !stack_output env/dev/network.yaml::MirzaWebDBSecurityGroup
+  DBName: mirzadevelopment

@@ -1,0 +1,8 @@
+template_path: web.template.yaml
+parameters:
+  KeyName: mirza-dev
+  EnvironmentName: demo
+  DomainName: demo.heymirza.dev
+  ACMCertificateARN: {{ stack_group_config.acm_certificate_arn }}
+  EBAppName: !stack_output shared/eb-app.yaml::EBAppName
+  EC2SecurityGroupId: !stack_output env/demo/network.yaml::MirzaWebEC2SecurityGroup

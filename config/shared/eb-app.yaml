@@ -1,0 +1,3 @@
+template_path: eb-app.template.yaml
+parameters:
+  EBAppName: MirzaWebApp

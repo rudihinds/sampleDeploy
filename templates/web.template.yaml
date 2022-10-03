@@ -1,0 +1,201 @@
+---
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'AWS CloudFormation Sample Template ElasticBeanstalk_Nodejs_Sample: Configure
+  and launch the AWS Elastic Beanstalk sample application. **WARNING** This template
+  creates one or more Amazon EC2 instances. You will be billed for the AWS resources
+  used if you create a stack from this template.'
+Parameters:
+  KeyName:
+    Description: Name of an existing EC2 KeyPair to enable SSH access to the AWS Elastic
+      Beanstalk instance
+    Type: AWS::EC2::KeyPair::KeyName
+    ConstraintDescription: must be the name of an existing EC2 KeyPair.
+  EnvironmentName:
+    Description: Name of the EB environment
+    Type: String
+  RootDomain:
+    Description: Root domain name to deploy to
+    Type: String
+    Default: heymirza.dev.
+  DomainName:
+    Description: Domain to deploy to (example dev.heymirza.dev)
+    Type: String
+  EBHostedZoneId:
+    Description: HostedZoneId for the elasticbeanstalk.com region. See README for info.
+    Type: String
+    # Default: Z3AADJGX6KTTL2 # ELB load balancer us-east-2 HostedZoneId
+    Default: Z14LCN19Q5QHIC # Elastic Beanstalk us-east-2 HostedZoneId
+  EC2SecurityGroupId:
+    Description: Security group ID for ec2 instances
+    Type: String
+  EBAppName:
+    Description: Elastic Beanstalk app name, created in shared StackGroup
+    Type: String
+  ACMCertificateARN:
+    Description: Create the certificate in ACM and then copy and paste the ARN of the cert here
+    Type: String
+  DatabaseURL:
+    Description: Database URL for RDS
+    Type: String
+    Default: "postgres://"
+  
+Mappings:
+  Region2Principal:
+    ap-east-1:
+      EC2Principal: ec2.amazonaws.com
+      OpsWorksPrincipal: opsworks.amazonaws.com
+    ap-northeast-1:
+      EC2Principal: ec2.amazonaws.com
+      OpsWorksPrincipal: opsworks.amazonaws.com
+    ap-northeast-2:
+      EC2Principal: ec2.amazonaws.com
+      OpsWorksPrincipal: opsworks.amazonaws.com
+    ap-northeast-3:
+      EC2Principal: ec2.amazonaws.com
+      OpsWorksPrincipal: opsworks.amazonaws.com
+    ap-south-1:
+      EC2Principal: ec2.amazonaws.com
+      OpsWorksPrincipal: opsworks.amazonaws.com
+    ap-southeast-1:
+      EC2Principal: ec2.amazonaws.com
+      OpsWorksPrincipal: opsworks.amazonaws.com
+    ap-southeast-2:
+      EC2Principal: ec2.amazonaws.com
+      OpsWorksPrincipal: opsworks.amazonaws.com
+    ca-central-1:
+      EC2Principal: ec2.amazonaws.com
+      OpsWorksPrincipal: opsworks.amazonaws.com
+    cn-north-1:
+      EC2Principal: ec2.amazonaws.com.cn
+      OpsWorksPrincipal: opsworks.amazonaws.com.cn
+    cn-northwest-1:
+      EC2Principal: ec2.amazonaws.com.cn
+      OpsWorksPrincipal: opsworks.amazonaws.com.cn
+    eu-central-1:
+      EC2Principal: ec2.amazonaws.com
+      OpsWorksPrincipal: opsworks.amazonaws.com
+    eu-north-1:
+      EC2Principal: ec2.amazonaws.com
+      OpsWorksPrincipal: opsworks.amazonaws.com
+    eu-west-1:
+      EC2Principal: ec2.amazonaws.com
+      OpsWorksPrincipal: opsworks.amazonaws.com
+    eu-west-2:
+      EC2Principal: ec2.amazonaws.com
+      OpsWorksPrincipal: opsworks.amazonaws.com
+    eu-west-3:
+      EC2Principal: ec2.amazonaws.com
+      OpsWorksPrincipal: opsworks.amazonaws.com
+    me-south-1:
+      EC2Principal: ec2.amazonaws.com
+      OpsWorksPrincipal: opsworks.amazonaws.com
+    sa-east-1:
+      EC2Principal: ec2.amazonaws.com
+      OpsWorksPrincipal: opsworks.amazonaws.com
+    us-east-1:
+      EC2Principal: ec2.amazonaws.com
+      OpsWorksPrincipal: opsworks.amazonaws.com
+    us-east-2:
+      EC2Principal: ec2.amazonaws.com
+      OpsWorksPrincipal: opsworks.amazonaws.com
+    us-west-1:
+      EC2Principal: ec2.amazonaws.com
+      OpsWorksPrincipal: opsworks.amazonaws.com
+    us-west-2:
+      EC2Principal: ec2.amazonaws.com
+      OpsWorksPrincipal: opsworks.amazonaws.com
+Resources:
+  WebServerRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - Fn::FindInMap:
+              - Region2Principal
+              - Ref: AWS::Region
+              - EC2Principal
+          Action:
+          - sts:AssumeRole
+      Path: "/"
+  WebServerRolePolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: WebServerRole
+      PolicyDocument:
+        Statement:
+        - Effect: Allow
+          NotAction: iam:*
+          Resource: "*"
+      Roles:
+      - Ref: WebServerRole
+  WebServerInstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Path: "/"
+      Roles:
+      - Ref: WebServerRole
+        
+  MirzaAppDevEnvironment:
+    Type: AWS::ElasticBeanstalk::Environment
+    Properties:
+      EnvironmentName:
+        Ref: EnvironmentName
+      Description: AWS Elastic Beanstalk Environment running Sample Node.js Application
+      ApplicationName: !Ref EBAppName
+        # Fn::ImportValue: !Sub ${MirzaInitStackName}::MirzaWebAppApplicationName
+      CNAMEPrefix: !Sub mirza-web-${EnvironmentName}
+      SolutionStackName: 64bit Amazon Linux 2 v5.3.0 running Node.js 12
+      OptionSettings:
+      - Namespace: aws:elasticbeanstalk:environment
+        OptionName: LoadBalancerType
+        Value: application
+      - Namespace: aws:elasticbeanstalk:environment:process:default
+        OptionName: MatcherHTTPCode
+        Value: '200,302'
+      - Namespace: aws:autoscaling:launchconfiguration
+        OptionName: EC2KeyName
+        Value:
+          Ref: KeyName
+      - Namespace: aws:autoscaling:launchconfiguration
+        OptionName: IamInstanceProfile
+        Value:
+          Ref: WebServerInstanceProfile
+      - Namespace: aws:autoscaling:launchconfiguration
+        OptionName: SecurityGroups
+        Value: !Ref EC2SecurityGroupId
+          # Fn::ImportValue: !Sub ${NetworkStackName}::MirzaWebEC2SecurityGroupId
+      - Namespace: aws:elbv2:listener:443
+        OptionName: Protocol
+        Value: HTTPS
+      - Namespace: aws:elbv2:listener:443
+        OptionName: SSLCertificateArns
+        Value: !Ref ACMCertificateARN
+        
+  DNSRecordSet:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      Type: A
+      Name:
+        Ref: DomainName
+      HostedZoneName:
+        Ref: RootDomain
+      AliasTarget:
+        HostedZoneId:
+          Ref: EBHostedZoneId
+        DNSName: !Sub mirza-web-${EnvironmentName}.${AWS::Region}.elasticbeanstalk.com
+        EvaluateTargetHealth: true
+    DependsOn: MirzaAppDevEnvironment
+
+Outputs:
+  URL:
+    Description: URL of the AWS Elastic Beanstalk Environment
+    Value:
+      Fn::Join:
+      - ''
+      - - http://
+        - Fn::GetAtt:
+          - MirzaAppDevEnvironment
+          - EndpointURL
